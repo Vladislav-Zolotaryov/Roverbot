@@ -1,11 +1,18 @@
 #include <SoftwareSerial.h>
+#include <Servo.h>
+#include <NewPing.h>
 
-SoftwareSerial xbee(0, 1);
+int headServoPosition = 90;
 
 int leftSideSpeedPin = 5;
 int rightSideSpeedPin = 6;
 int leftSidePin = 4;
 int rightSidePin = 7;
+int headServoPin = 10;
+int sensorTriggerPin = 8;
+int sensorEchoPin = 9;
+
+int sensorMaxDistance = 200;
 
 int time = 0;
 int lastCommandTime = 0;
@@ -14,13 +21,27 @@ int currentAcceleration = 200;
 
 int accelerationChangeMultiplier = 10;
 
+boolean autoExplorerMode = false;
+
+Servo headServo;
+SoftwareSerial xbee(0, 1);
+NewPing sonar(sensorTriggerPin, sensorEchoPin, sensorMaxDistance);
+
 void setup() {
   Serial.begin(9600);
   xbee.begin(9600);
+  
   digitalWrite(leftSideSpeedPin, LOW);   
   digitalWrite(rightSideSpeedPin, LOW);
+  
+  headServo.attach(10);
+  headServo.write(headServoPosition);
 }
 
+void loop() {
+  autoExplore();
+}
+/*
 void loop() {
   if (xbee.available()) {
     lastCommandTime = time;
@@ -50,12 +71,63 @@ void loop() {
         break;  
     }
   }
-  int delta = time - lastCommandTime;
-  if (delta > 10000) {
+  int lastCommandDelta = time - lastCommandTime;
+  if (lastCommandDelta > 10000) {
      lastCommandTime = 0;
      stopMoving();
   }
   time++;
+}*/
+
+void autoExplore() {
+   int distanceCm = sonar.ping() / US_ROUNDTRIP_CM;
+   if (distanceCm < 30) {
+     stopMoving();
+     int leftDistanceCm = lookLeft();
+     int rightDistanceCm = lookRight();
+     if (leftDistanceCm > rightDistanceCm) {
+       rotateExactlyToLeft();
+     } else {
+       rotateExactlyToRight();
+     }
+     lookForward();
+   } else {
+     moveForward(currentAcceleration);
+     delay(200);
+   }
+}
+
+int look(int servoPosition) {
+  headServo.write(servoPosition);
+  delay(1000);
+  return sonar.ping() / US_ROUNDTRIP_CM;  
+}
+
+int lookForward() {
+  headServoPosition = 90;
+  return look(headServoPosition);
+}
+
+int lookLeft() {
+  headServoPosition = 0;
+  return look(headServoPosition);
+}
+
+int lookRight() {
+  headServoPosition = 180;
+  return look(headServoPosition);
+}
+
+void rotateExactlyToLeft() {
+  rotateLeft(currentAcceleration);  
+  delay(2000);
+  stopMoving();
+}
+
+void rotateExactlyToRight() {
+  rotateRight(currentAcceleration);  
+  delay(2000);
+  stopMoving();
 }
 
 void incrementAcceleration() {
