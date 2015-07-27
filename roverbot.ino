@@ -17,7 +17,7 @@ int sensorMaxDistance = 200;
 int time = 0;
 int lastCommandTime = 0;
 
-int currentAcceleration = 200;
+int currentAcceleration = 210;
 
 int accelerationChangeMultiplier = 10;
 
@@ -36,6 +36,7 @@ void setup() {
   
   headServo.attach(10);
   headServo.write(headServoPosition);
+  delay(1000);
 }
 
 void loop() {
@@ -80,21 +81,27 @@ void loop() {
 }*/
 
 void autoExplore() {
-   int distanceCm = sonar.ping() / US_ROUNDTRIP_CM;
+   int distanceCm = convertDistance(sonar.ping() / US_ROUNDTRIP_CM);
    if (distanceCm < 30) {
      stopMoving();
-     int leftDistanceCm = lookLeft();
-     int rightDistanceCm = lookRight();
-     if (leftDistanceCm > rightDistanceCm) {
-       rotateExactlyToLeft();
-     } else {
+     int leftDistanceCm = convertDistance(lookLeft());
+     int rightDistanceCm = convertDistance(lookRight());
+     if (rightDistanceCm > leftDistanceCm) {
        rotateExactlyToRight();
+     } else {
+       rotateExactlyToLeft();
      }
      lookForward();
    } else {
      moveForward(currentAcceleration);
-     delay(200);
    }
+}
+
+int convertDistance(int distance) {
+  if (distance == 0) {
+    distance = sensorMaxDistance + 10;
+  }
+  return distance;
 }
 
 int look(int servoPosition) {
