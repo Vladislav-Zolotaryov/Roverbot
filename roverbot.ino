@@ -17,9 +17,11 @@ int sensorMaxDistance = 200;
 int time = 0;
 int lastCommandTime = 0;
 
-int currentAcceleration = 210;
+int currentAcceleration = 200;
 
 int accelerationChangeMultiplier = 10;
+
+int changeDirectionObstaclesDistance = 25;
 
 boolean autoExplorerMode = false;
 
@@ -40,15 +42,15 @@ void setup() {
 }
 
 void loop() {
-  autoExplore();
-}
-/*
-void loop() {
   if (xbee.available()) {
     lastCommandTime = time;
     char command = xbee.read();
-    Serial.write(command);
     switch (command) {
+      case 'a':
+        while(true) {
+         autoExplore();
+        }
+        break; 
       case 'f':
          moveForward(currentAcceleration);
         break; 
@@ -78,11 +80,12 @@ void loop() {
      stopMoving();
   }
   time++;
-}*/
+}
 
 void autoExplore() {
-   int distanceCm = convertDistance(sonar.ping() / US_ROUNDTRIP_CM);
-   if (distanceCm < 30) {
+   delay(100);
+   int distanceCm = convertDistance(sonar.ping() / US_ROUNDTRIP_CM);  
+   if (distanceCm <= changeDirectionObstaclesDistance) {
      stopMoving();
      int leftDistanceCm = convertDistance(lookLeft());
      int rightDistanceCm = convertDistance(lookRight());
@@ -106,8 +109,10 @@ int convertDistance(int distance) {
 
 int look(int servoPosition) {
   headServo.write(servoPosition);
-  delay(1000);
-  return sonar.ping() / US_ROUNDTRIP_CM;  
+  delay(600);
+  int result = sonar.ping() / US_ROUNDTRIP_CM;
+  delay(100);
+  return result;  
 }
 
 int lookForward() {
@@ -116,12 +121,12 @@ int lookForward() {
 }
 
 int lookLeft() {
-  headServoPosition = 0;
+  headServoPosition = 15;
   return look(headServoPosition);
 }
 
 int lookRight() {
-  headServoPosition = 180;
+  headServoPosition = 175;
   return look(headServoPosition);
 }
 
